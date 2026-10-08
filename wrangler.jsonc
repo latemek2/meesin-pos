@@ -1,0 +1,10 @@
+// ตั้งค่าการขึ้นเว็บบน Cloudflare Workers (เว็บแบบไฟล์คงที่ ไม่มีโค้ดฝั่งเซิร์ฟเวอร์)
+{
+  "name": "meesin-pos",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    // ทุกหน้า เช่น /admin/products ให้เปิด index.html แล้วแอปจัดการเอง
+    "not_found_handling": "single-page-application"
+  }
+}

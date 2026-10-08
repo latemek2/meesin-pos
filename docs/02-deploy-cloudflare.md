@@ -1,4 +1,4 @@
-# ขั้นที่ 2: เอาเว็บขึ้นออนไลน์ด้วย Cloudflare Pages
+# ขั้นที่ 2: เอาเว็บขึ้นออนไลน์ด้วย Cloudflare
 
 ใช้เวลาประมาณ 15 นาที ทำครั้งเดียว หลังจากนี้ทุกครั้งที่โค้ดใน GitHub เปลี่ยน เว็บจะอัปเดตเองภายในไม่กี่นาที
 
@@ -12,37 +12,32 @@
 2. สมัครด้วยอีเมลและรหัสผ่าน แล้วยืนยันอีเมล
 3. ไม่ต้องเพิ่มโดเมนใด ๆ ข้ามขั้นนั้นได้
 
-## 2. สร้างโปรเจกต์ Pages ที่เชื่อมกับ GitHub
+## 2. สร้างโปรเจกต์ที่เชื่อมกับ GitHub
 
-1. เมนูซ้าย เลือก **Workers & Pages** (หรือ **Compute (Workers)**)
+1. เมนูซ้าย เลือก **Compute** แล้วเลือก **Workers & Pages**
 2. กด **Create** (หรือ **Create application**)
-3. เลือกแท็บ **Pages** ถ้าเห็นแต่ Workers ให้มองหาลิงก์ **Looking to deploy Pages? Get started**
-4. กด **Connect to Git** (หรือ **Import an existing Git repository**)
-5. เลือก **GitHub** แล้วอนุญาตให้ Cloudflare เข้าถึง repository `meesin-pos`
-6. เลือก `latemek2/meesin-pos` แล้วกด **Begin setup**
+3. เลือก **Import a repository** (หรือ **Connect to Git**)
+4. เลือก **GitHub** แล้วอนุญาตให้ Cloudflare เข้าถึง repository `meesin-pos`
+5. เลือก `latemek2/meesin-pos`
 
 ## 3. ตั้งค่าการ build
 
 | ช่อง | ใส่ค่า |
 | --- | --- |
 | Project name | `meesin-pos` |
-| Production branch | `main` |
-| Framework preset | `React (Vite)` หรือ `None` |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` (ค่าเดิม ไม่ต้องแก้) |
 
-จากนั้นเปิด **Environment variables (advanced)** แล้วเพิ่ม 1 ตัว
+ไฟล์ `wrangler.jsonc` ใน repository บอก Cloudflare แล้วว่าเว็บอยู่ในโฟลเดอร์ `dist` ไม่ต้องตั้งเพิ่ม
 
-| Variable name | Value |
-| --- | --- |
-| `NODE_VERSION` | `20` |
+กด **Deploy** แล้วรอ 2–3 นาที เสร็จแล้วจะได้ลิงก์แบบ `https://meesin-pos.ชื่อบัญชี.workers.dev` ดูได้ที่แท็บ **Overview** หรือ **Domains**
 
-กด **Save and Deploy** แล้วรอ 2–3 นาที เสร็จแล้วจะได้ลิงก์แบบ `https://meesin-pos.pages.dev`
+> ถ้าเคยสร้างโปรเจกต์ไว้แล้วและ build ไม่ผ่าน ไม่ต้องสร้างใหม่ เข้าแท็บ **Deployments** แล้วกด **Retry build** หรือรอให้ build ใหม่เองเมื่อโค้ดใน GitHub อัปเดต
 
 ## 4. บอก Supabase ว่าเว็บอยู่ที่ไหน
 
 1. ที่ Supabase เลือก **Authentication** แล้วเลือก **URL Configuration**
-2. ช่อง **Site URL** ใส่ลิงก์ที่ได้จาก Cloudflare เช่น `https://meesin-pos.pages.dev`
+2. ช่อง **Site URL** ใส่ลิงก์ `workers.dev` ที่ได้จาก Cloudflare
 3. กด **Save**
 
 ## 5. ลองเข้าใช้งาน
