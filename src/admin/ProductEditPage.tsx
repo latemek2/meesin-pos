@@ -6,6 +6,7 @@ import { baht, num } from '../lib/format';
 import { sizeDetail } from '../lib/sizes';
 import { ErrorBox, Loading, Modal, MoneyInput, QtyCell, useToast } from '../components/ui';
 import VariantBuilder, { makeSku, type NewVariant } from './VariantBuilder';
+import { DeleteProductsModal, deleteSummary } from './DeleteProducts';
 import type { Category, Product, Variant } from '../lib/types';
 
 interface FormState {
@@ -73,6 +74,8 @@ function Editor({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [adjust, setAdjust] = useState<Variant | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmVar, setConfirmVar] = useState<number | null>(null);
   const [showBuilder, setShowBuilder] = useState(isNew);
 
   const category = cats.find((c) => String(c.id) === form.category_id);
@@ -176,6 +179,23 @@ function Editor({
     }
   }
 
+  async function deleteVariant(v: Variant) {
+    if (confirmVar !== v.id) {
+      setConfirmVar(v.id);
+      window.setTimeout(() => setConfirmVar((c) => (c === v.id ? null : c)), 3000);
+      return;
+    }
+    setConfirmVar(null);
+    const { data, error } = await supabase.rpc('delete_variant', { p_id: v.id });
+    if (error) return toast(errorText(error), 'danger');
+    toast(
+      data === 'deleted'
+        ? `ลบ ${v.color} ${v.size_label} แล้ว`
+        : `${v.color} ${v.size_label} เคยขายหรือรับของแล้ว จึงปิดขายแทนการลบ`,
+    );
+    await reload();
+  }
+
   async function updateVariant(v: Variant, patch: Partial<Variant>) {
     const { error } = await supabase.from('variants').update(patch).eq('id', v.id);
     if (error) toast(errorText(error), 'danger');
@@ -195,9 +215,14 @@ function Editor({
           <h1>{isNew ? 'เพิ่มสินค้าใหม่' : product?.name}</h1>
         </div>
         {!isNew && (
-          <Link className="btn" to={`/admin/labels?product=${product?.id}`}>
-            พิมพ์สติกเกอร์รุ่นนี้
-          </Link>
+          <div className="row">
+            <Link className="btn" to={`/admin/labels?product=${product?.id}`}>
+              พิมพ์สติกเกอร์รุ่นนี้
+            </Link>
+            <button type="button" className="btn danger" onClick={() => setDeleting(true)}>
+              ลบสินค้า
+            </button>
+          </div>
         )}
       </div>
 
@@ -313,6 +338,9 @@ function Editor({
                       </button>{' '}
                       <button className="btn sm ghost" onClick={() => updateVariant(v, { active: !v.active })}>
                         {v.active ? 'ปิดขาย' : 'เปิดขาย'}
+                      </button>{' '}
+                      <button className={`btn sm ${confirmVar === v.id ? 'danger' : 'ghost'}`} onClick={() => deleteVariant(v)}>
+                        {confirmVar === v.id ? 'แตะอีกครั้งเพื่อลบ' : 'ลบ'}
                       </button>
                     </td>
                   </tr>
@@ -343,6 +371,18 @@ function Editor({
         </div>
       )}
 
+      {deleting && product && (
+        <DeleteProductsModal
+          products={[{ id: product.id, name: product.name, stock: variants.filter((v) => v.active).reduce((a, v) => a + v.stock_qty, 0) }]}
+          onClose={() => setDeleting(false)}
+          onDone={(res) => {
+            setDeleting(false);
+            toast(deleteSummary(res));
+            if (res.deleted) nav('/admin/products', { replace: true });
+            else reload();
+          }}
+        />
+      )}
       {adjust && (
         <AdjustModal
           variant={adjust}

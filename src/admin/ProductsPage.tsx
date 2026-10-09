@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategories, must, useLoad } from '../lib/data';
 import { baht } from '../lib/format';
-import { ErrorBox, Loading } from '../components/ui';
+import { ErrorBox, Loading, useToast } from '../components/ui';
+import { DeleteProductsModal, deleteSummary } from './DeleteProducts';
 import type { Product } from '../lib/types';
 
 interface Row extends Product {
@@ -18,8 +19,11 @@ export default function ProductsPage() {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<number | 'all'>('all');
   const [showInactive, setShowInactive] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const toast = useToast();
 
-  const { data, error, loading } = useLoad(async () => {
+  const { data, error, loading, reload } = useLoad(async () => {
     const [cats, products, costs, variants] = await Promise.all([
       getCategories(),
       must<Product[]>(supabase.from('products').select('*').order('name')),
@@ -59,9 +63,18 @@ export default function ProductsPage() {
     );
   }, [data, q, cat, showInactive]);
 
-  if (loading) return <Loading />;
+  if (loading && !data) return <Loading />;
   if (error || !data) return <ErrorBox error={error} />;
   const catName = new Map(data.cats.map((c) => [c.id, c.name]));
+  const allOn = list.length > 0 && list.every((r) => selected.has(r.id));
+  const toggle = (id: number) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const chosen = data.rows.filter((r) => selected.has(r.id));
 
   return (
     <>
@@ -111,6 +124,22 @@ export default function ProductsPage() {
         </label>
       </div>
 
+      {selected.size > 0 && (
+        <div className="notice row between">
+          <span>
+            เลือกแล้ว <strong>{selected.size}</strong> รุ่น
+          </span>
+          <div className="row">
+            <button className="btn sm" onClick={() => setSelected(new Set())}>
+              ยกเลิกการเลือก
+            </button>
+            <button className="btn sm danger" onClick={() => setDeleting(true)}>
+              ลบที่เลือก
+            </button>
+          </div>
+        </div>
+      )}
+
       {list.length === 0 ? (
         <div className="card empty">
           {data.rows.length === 0 ? 'ยังไม่มีสินค้า กด "+ เพิ่มสินค้า" หรือนำเข้าจาก Excel เพื่อเริ่ม' : 'ไม่พบสินค้าที่ค้นหา'}
@@ -120,6 +149,21 @@ export default function ProductsPage() {
           <table className="table">
             <thead>
               <tr>
+                <th className="c" style={{ width: 44 }}>
+                  <input
+                    type="checkbox"
+                    aria-label="เลือกทั้งหมดที่แสดงอยู่"
+                    checked={allOn}
+                    onChange={() =>
+                      setSelected((s) => {
+                        const n = new Set(s);
+                        list.forEach((r) => (allOn ? n.delete(r.id) : n.add(r.id)));
+                        return n;
+                      })
+                    }
+                    style={{ width: 18, height: 18, accentColor: 'var(--brand)' }}
+                  />
+                </th>
                 <th>สินค้า</th>
                 <th>หมวด</th>
                 <th className="r">ราคาขาย</th>
@@ -132,6 +176,15 @@ export default function ProductsPage() {
             <tbody>
               {list.map((r) => (
                 <tr key={r.id} className="click" onClick={() => nav(`/admin/products/${r.id}`)}>
+                  <td className="c" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`เลือก ${r.name}`}
+                      checked={selected.has(r.id)}
+                      onChange={() => toggle(r.id)}
+                      style={{ width: 18, height: 18, accentColor: 'var(--brand)' }}
+                    />
+                  </td>
                   <td>
                     <strong>{r.name}</strong>
                     {r.brand && <span className="muted small"> · {r.brand}</span>}
@@ -151,6 +204,19 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {deleting && (
+        <DeleteProductsModal
+          products={chosen.map((r) => ({ id: r.id, name: r.name, stock: r.stock }))}
+          onClose={() => setDeleting(false)}
+          onDone={async (res) => {
+            setDeleting(false);
+            setSelected(new Set());
+            toast(deleteSummary(res));
+            await reload();
+          }}
+        />
       )}
     </>
   );

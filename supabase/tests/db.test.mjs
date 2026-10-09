@@ -199,5 +199,24 @@ await expectErr(`select public.import_products($1::jsonb)`, [JSON.stringify({ pr
 ok((await one(`select count(*)::int c from public.variants`)).c === before, 'ไฟล์ที่ผิด ไม่บันทึกอะไรเลย');
 await expectErr(`select public.import_products($1::jsonb)`, [JSON.stringify({ products: [{ name: 'x', category: 'ไม่มีหมวดนี้', price: 1, variants: [] }] })], 'ไม่พบหมวด', 'หมวดที่ไม่มีอยู่ถูกปฏิเสธ');
 
+console.log('\n[12] ลบสินค้า');
+await as(POS);
+await expectErr(`select public.delete_products(array[1]::bigint[])`, null, 'เฉพาะเจ้าของร้าน', 'เครื่อง POS ลบสินค้าไม่ได้');
+await as(OWNER);
+const pid = async (name) => (await one(`select id from public.products where name=$1`, [name])).id;
+const bag = await pid('กระเป๋าผ้า');            // นำเข้าแล้ว มีสต็อกตั้งต้น แต่ไม่เคยขาย
+const classic = await pid('ผ้าใบ Classic');      // เคยขายแล้ว
+const d1 = (await one(`select public.delete_products($1::bigint[]) r`, [[bag, classic]])).r;
+ok(d1.deleted === 1 && d1.archived === 1 && d1.archived_names[0] === 'ผ้าใบ Classic', `ลบได้ 1 รุ่น เคยขายแล้วจึงปิดขาย 1 รุ่น (${JSON.stringify(d1)})`);
+ok(!(await one(`select count(*)::int c from public.products where id=$1`, [bag])).c, 'กระเป๋าผ้าถูกลบจริง พร้อมสต็อกตั้งต้น');
+ok((await one(`select active from public.products where id=$1`, [classic])).active === false, 'ผ้าใบ Classic ยังอยู่แต่ปิดขาย');
+ok((await one(`select public.get_bill($1) r`, [s1.bill_no])).r.items.length === 2, 'บิลเก่าของสินค้าที่ปิดขายยังเปิดดูได้ครบ');
+ok(!(await q(`select 1 from public.v_stock where product_id=$1`, [classic])).length, 'สินค้าที่ปิดขายไม่ขึ้นในหน้าขาย');
+const wavePid = await pid('รองเท้าแตะ Wave');
+const red = (await one(`select id from public.variants where product_id=$1 and color='แดง'`, [wavePid])).id;
+ok((await one(`select public.delete_variant($1) r`, [red])).r === 'deleted', 'ลบสีไซซ์ที่ไม่เคยขายได้จริง');
+ok((await one(`select public.delete_variant($1) r`, [v40.id])).r === 'archived', 'สีไซซ์ที่เคยขายถูกปิดขายแทน');
+ok((await one(`select bool_and(v.stock_qty = coalesce(m.s,0)) ok from public.variants v left join (select variant_id, sum(qty_change) s from public.stock_movements group by variant_id) m on m.variant_id = v.id`)).ok, 'ยอดสต็อกยังตรงกับประวัติหลังลบ');
+
 console.log(`\nผ่าน ${pass} / ${pass + fail}`);
 process.exit(fail ? 1 : 0);

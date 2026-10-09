@@ -14,6 +14,7 @@
 | --- | --- |
 | [`supabase/002_pos.sql`](../supabase/002_pos.sql) | เปลี่ยน/คืน ยกเลิกบิล พิมพ์ซ้ำ โปรโมชัน |
 | [`supabase/003_import.sql`](../supabase/003_import.sql) | นำเข้าสินค้าจาก Excel |
+| [`supabase/004_delete.sql`](../supabase/004_delete.sql) | ลบสินค้า และลบสีไซซ์ |
 
 วิธีรันแต่ละไฟล์
 
