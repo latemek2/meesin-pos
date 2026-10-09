@@ -41,10 +41,45 @@ export const getSettings = () => must<Settings>(supabase.from('settings').select
 export const getSuppliers = () =>
   must<Supplier[]>(supabase.from('suppliers').select('*').order('name'));
 
+/**
+ * ดึงทุกแถว ไม่ว่าจะมีกี่แถว
+ * Supabase ส่งได้ครั้งละไม่เกิน 1,000 แถว จึงดึงทีละหน้าจนหมด
+ * ต้องเรียงลำดับด้วยคอลัมน์ที่ไม่ซ้ำ (เช่น id) ปิดท้ายเสมอ ไม่อย่างนั้นแถวอาจซ้ำหรือหายระหว่างหน้า
+ */
+export const PAGE_SIZE = 1000;
+export async function fetchAll<T>(
+  query: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const page = await must<T[] | null>(query(from, from + PAGE_SIZE - 1));
+    const rows = page ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) return out;
+  }
+}
+
 export const getStock = () =>
-  must<StockRow[]>(
-    supabase.from('v_stock').select('*').order('product_name').order('color').order('sort_order'),
+  fetchAll<StockRow>((a, b) =>
+    supabase
+      .from('v_stock')
+      .select('*')
+      .order('product_name')
+      .order('color')
+      .order('sort_order')
+      .order('variant_id')
+      .range(a, b),
   );
+
+/** ต้นทุนทุกรุ่น (เห็นได้เฉพาะเจ้าของร้าน) */
+export const getCosts = () =>
+  fetchAll<{ product_id: number; cost: number }>((a, b) =>
+    supabase.from('product_costs').select('product_id, cost').order('product_id').range(a, b),
+  );
+
+/** ดึงสต็อกเฉพาะบางรายการ ใช้หลังขาย จะได้ไม่ต้องดึงทั้งร้าน */
+export const getStockOf = (variantIds: number[]) =>
+  must<StockRow[]>(supabase.from('v_stock').select('*').in('variant_id', variantIds));
 
 /** หาสินค้าจากบาร์โค้ดหรือ SKU ที่ยิงหรือพิมพ์มา */
 export async function findByCode(code: string): Promise<StockRow | null> {

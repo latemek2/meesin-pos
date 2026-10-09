@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { supabase, errorText } from '../lib/supabase';
-import { must, useLoad } from '../lib/data';
+import { fetchAll, must, useLoad } from '../lib/data';
 import { ErrorBox, Loading, Modal, useToast } from '../components/ui';
 import { SIZE_TYPE_LABEL, type Category, type SizeType } from '../lib/types';
 
@@ -15,7 +15,7 @@ export default function CategoriesPage() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [cats, products] = await Promise.all([
       must<Category[]>(supabase.from('categories').select('*').order('sort_order').order('id')),
-      must<{ category_id: number }[]>(supabase.from('products').select('category_id')),
+      fetchAll<{ category_id: number }>((a, b) => supabase.from('products').select('category_id').order('id').range(a, b)),
     ]);
     return cats.map((c) => ({ ...c, products: products.filter((p) => p.category_id === c.id).length })) as Row[];
   });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, errorText } from '../lib/supabase';
-import { getStock, getSuppliers, must, useLoad } from '../lib/data';
+import { getCosts, getStock, getSuppliers, must, useLoad } from '../lib/data';
 import { baht, dateTH, num, todayISO } from '../lib/format';
 import { sizeDetail } from '../lib/sizes';
 import { ErrorBox, Loading, useToast } from '../components/ui';
@@ -30,7 +30,7 @@ export default function ReceivePage() {
     const [stock, suppliers, costs, history] = await Promise.all([
       getStock(),
       getSuppliers(),
-      must<{ product_id: number; cost: number }[]>(supabase.from('product_costs').select('product_id, cost')),
+      getCosts(),
       must<ReceiptRow[]>(
         supabase
           .from('goods_receipts')

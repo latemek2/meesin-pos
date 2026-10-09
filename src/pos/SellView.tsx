@@ -63,7 +63,7 @@ export default function SellView({
   promos: Promo[];
   cart: Cart;
   askOwner: AskOwner;
-  onStockChanged: () => void;
+  onStockChanged: (variantIds?: number[]) => void;
   onHeldChanged: () => void;
 }) {
   const toast = useToast();
@@ -183,9 +183,10 @@ export default function SellView({
     const { data, error } = await supabase.rpc('create_sale', { p: payload });
     if (error) return errorText(error);
     const billNo = (data as { bill_no: string }).bill_no;
+    const sold = priced.map((l) => l.row.variant_id);
     cart.clear();
     setModal(null);
-    onStockChanged();
+    onStockChanged(sold);
     const bill = await fetchBill(billNo).catch(() => null);
     if (bill) {
       if (getAutoPrint()) print(<Receipt bill={bill} settings={settings} />);

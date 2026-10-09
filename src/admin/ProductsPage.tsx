@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { getCategories, must, useLoad } from '../lib/data';
+import { fetchAll, getCategories, getCosts, useLoad } from '../lib/data';
 import { baht } from '../lib/format';
 import { ErrorBox, Loading, useToast } from '../components/ui';
 import { DeleteProductsModal, deleteSummary } from './DeleteProducts';
@@ -26,15 +26,21 @@ export default function ProductsPage() {
   const { data, error, loading, reload } = useLoad(async () => {
     const [cats, products, costs, variants] = await Promise.all([
       getCategories(),
-      must<Product[]>(supabase.from('products').select('*').order('name')),
-      must<{ product_id: number; cost: number }[]>(supabase.from('product_costs').select('product_id, cost')),
-      must<{ product_id: number; stock_qty: number; sku: string; barcode: string | null; active: boolean }[]>(
-        supabase.from('variants').select('product_id, stock_qty, sku, barcode, active'),
+      fetchAll<Product>((a, b) => supabase.from('products').select('*').order('name').order('id').range(a, b)),
+      getCosts(),
+      fetchAll<{ product_id: number; stock_qty: number; sku: string; barcode: string | null; active: boolean }>((a, b) =>
+        supabase.from('variants').select('product_id, stock_qty, sku, barcode, active').order('id').range(a, b),
       ),
     ]);
+    const byProduct = new Map<number, typeof variants>();
+    for (const v of variants) {
+      const list = byProduct.get(v.product_id);
+      if (list) list.push(v);
+      else byProduct.set(v.product_id, [v]);
+    }
     const costMap = new Map(costs.map((c) => [c.product_id, Number(c.cost)]));
     const rows: Row[] = products.map((p) => {
-      const vs = variants.filter((v) => v.product_id === p.id && v.active);
+      const vs = (byProduct.get(p.id) ?? []).filter((v) => v.active);
       return {
         ...p,
         cost: costMap.get(p.id) ?? 0,

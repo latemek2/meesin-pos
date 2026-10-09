@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, errorText } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { getCategories, getSettings, getStock, must, useLoad } from '../lib/data';
+import { getCategories, getSettings, getStock, getStockOf, must, useLoad } from '../lib/data';
 import { ErrorBox, Loading, useToast } from '../components/ui';
 import type { StockRow } from '../lib/types';
 import type { Promo } from './cart';
@@ -127,15 +127,28 @@ function PosMain({ onLock }: { onLock: () => void }) {
   });
 
   const { refreshRows } = cart;
-  const refreshStock = useCallback(async () => {
-    try {
-      const stock: StockRow[] = await getStock();
-      setData((d) => (d ? { ...d, stock } : d));
-      refreshRows(stock);
-    } catch (e) {
-      toast(`โหลดสต็อกไม่สำเร็จ: ${errorText(e)}`, 'danger');
-    }
-  }, [setData, refreshRows, toast]);
+  const lastFull = useRef(Date.now());
+  /** ดึงสต็อกใหม่ ส่งรหัสสินค้ามา = ดึงเฉพาะรายการนั้น (หลังขาย) ไม่ส่ง = ดึงทั้งร้าน */
+  const refreshStock = useCallback(
+    async (variantIds?: number[]) => {
+      try {
+        if (variantIds && variantIds.length) {
+          const rows = await getStockOf([...new Set(variantIds)]);
+          const map = new Map(rows.map((r) => [r.variant_id, r]));
+          setData((d) => (d ? { ...d, stock: d.stock.map((s) => map.get(s.variant_id) ?? s) } : d));
+          refreshRows(rows);
+          return;
+        }
+        lastFull.current = Date.now();
+        const stock: StockRow[] = await getStock();
+        setData((d) => (d ? { ...d, stock } : d));
+        refreshRows(stock);
+      } catch (e) {
+        toast(`โหลดสต็อกไม่สำเร็จ: ${errorText(e)}`, 'danger');
+      }
+    },
+    [setData, refreshRows, toast],
+  );
 
   const refreshHeld = useCallback(async () => {
     const { count } = await supabase.from('held_bills').select('id', { count: 'exact', head: true });
@@ -145,9 +158,12 @@ function PosMain({ onLock }: { onLock: () => void }) {
   useEffect(() => {
     refreshHeld();
     const t = window.setInterval(() => setClock(new Date()), 30000);
-    // ดึงสต็อกใหม่ทุก 2 นาที และทุกครั้งที่กลับมาที่หน้าต่างนี้ เผื่อหลังบ้านรับของเข้า
-    const s = window.setInterval(refreshStock, 120000);
-    const onFocus = () => refreshStock();
+    // ดึงสต็อกทั้งร้านใหม่ทุก 10 นาที และเมื่อกลับมาที่หน้าต่างนี้ (ไม่เกินนาทีละครั้ง) เผื่อหลังบ้านรับของเข้า
+    // ไม่ดึงถี่กว่านี้ เพราะ Supabase ฟรีจำกัดปริมาณข้อมูลรับส่งต่อเดือน
+    const s = window.setInterval(() => refreshStock(), 10 * 60 * 1000);
+    const onFocus = () => {
+      if (Date.now() - lastFull.current > 60 * 1000) refreshStock();
+    };
     window.addEventListener('focus', onFocus);
     return () => {
       window.clearInterval(t);

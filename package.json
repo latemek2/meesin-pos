@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:db": "node supabase/tests/db.test.mjs supabase/001_setup.sql supabase/002_pos.sql supabase/002_pos.sql supabase/003_import.sql supabase/003_import.sql supabase/004_delete.sql supabase/004_delete.sql",
     "test:excel": "esbuild tests/excel.test.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/excel.test.mjs --log-level=warning && node node_modules/.cache/excel.test.mjs",
-    "test": "npm run test:db && npm run test:excel"
+    "test": "npm run test:db && npm run test:excel && npm run test:fetch",
+    "test:fetch": "esbuild tests/fetch.test.ts --bundle --external:@supabase/supabase-js --define:import.meta.env={} --platform=node --format=esm --outfile=node_modules/.cache/fetch.test.mjs --log-level=warning && node node_modules/.cache/fetch.test.mjs"
   },
   "dependencies": {
     "@fontsource/anuphan": "5.2.5",

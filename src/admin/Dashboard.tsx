@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { getSettings, getStock, must, useLoad } from '../lib/data';
+import { getCosts, getSettings, getStock, useLoad } from '../lib/data';
 import { baht } from '../lib/format';
 import { ErrorBox, Loading, QtyCell } from '../components/ui';
 import { sizeDetail } from '../lib/sizes';
@@ -9,7 +8,7 @@ export default function Dashboard() {
   const { data, error, loading } = useLoad(async () => {
     const [stock, costs, settings] = await Promise.all([
       getStock(),
-      must<{ product_id: number; cost: number }[]>(supabase.from('product_costs').select('product_id, cost')),
+      getCosts(),
       getSettings(),
     ]);
     return { stock, costs: new Map(costs.map((c) => [c.product_id, Number(c.cost)])), settings };

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, errorText } from '../lib/supabase';
-import { getCategories, getStock, must, useLoad } from '../lib/data';
+import { getCategories, getCosts, getStock, useLoad } from '../lib/data';
 import { ErrorBox, Loading, useToast } from '../components/ui';
 import { baht } from '../lib/format';
 import { SIZE_TYPE_LABEL, type SizeType } from '../lib/types';
@@ -89,7 +89,7 @@ export default function ImportPage() {
 
   async function onExport() {
     try {
-      const costs = await must<{ product_id: number; cost: number }[]>(supabase.from('product_costs').select('product_id, cost'));
+      const costs = await getCosts();
       await exportProducts(await getStock(), new Map(costs.map((c) => [c.product_id, Number(c.cost)])));
     } catch (e) {
       toast(errorText(e), 'danger');
