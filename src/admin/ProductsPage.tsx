@@ -72,9 +72,14 @@ export default function ProductsPage() {
             {data.rows.filter((r) => r.active).length} รุ่น · คลิกที่สินค้าเพื่อแก้ไข เพิ่มสีไซซ์ หรือปรับสต็อก
           </p>
         </div>
-        <Link className="btn primary" to="/admin/products/new">
-          + เพิ่มสินค้า
-        </Link>
+        <div className="row">
+          <Link className="btn" to="/admin/import">
+            นำเข้าจาก Excel
+          </Link>
+          <Link className="btn primary" to="/admin/products/new">
+            + เพิ่มสินค้า
+          </Link>
+        </div>
       </div>
 
       <div className="row">
@@ -108,7 +113,7 @@ export default function ProductsPage() {
 
       {list.length === 0 ? (
         <div className="card empty">
-          {data.rows.length === 0 ? 'ยังไม่มีสินค้า กด "+ เพิ่มสินค้า" เพื่อเริ่ม' : 'ไม่พบสินค้าที่ค้นหา'}
+          {data.rows.length === 0 ? 'ยังไม่มีสินค้า กด "+ เพิ่มสินค้า" หรือนำเข้าจาก Excel เพื่อเริ่ม' : 'ไม่พบสินค้าที่ค้นหา'}
         </div>
       ) : (
         <div className="table-wrap">

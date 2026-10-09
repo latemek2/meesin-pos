@@ -94,7 +94,9 @@ export default function VariantBuilder({
     chosen.forEach((s) => {
       if (usedKeys.has(`${c}|${s.label}`)) return;
       const { on: _on, idx, ...size } = s;
-      combos.push({ color: c, size, sort_order: idx, qty: Number(qty[`${c}|${s.label}`] || 0) });
+      // รองเท้าเรียงตามเบอร์ EU (40 → 400) ให้ตรงกับสินค้าที่นำเข้าจาก Excel
+      const order = showEU && Number(size.eu) ? Math.round(Number(size.eu) * 10) : idx;
+      combos.push({ color: c, size, sort_order: order, qty: Number(qty[`${c}|${s.label}`] || 0) });
     }),
   );
 

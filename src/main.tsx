@@ -16,6 +16,8 @@ import SuppliersPage from './admin/SuppliersPage';
 import ReceivePage from './admin/ReceivePage';
 import LabelsPage from './admin/LabelsPage';
 import SettingsPage from './admin/SettingsPage';
+import CategoriesPage from './admin/CategoriesPage';
+import ImportPage from './admin/ImportPage';
 import PosApp from './pos/PosApp';
 import type { Role } from './lib/types';
 
@@ -79,6 +81,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="receive" element={<ReceivePage />} />
               <Route path="labels" element={<LabelsPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="categories" element={<CategoriesPage />} />
+              <Route path="import" element={<ImportPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -147,6 +147,12 @@ table.table { width: 100%; border-collapse: collapse; }
   .main { padding: 16px 16px 40px; }
 }
 
+/* ---------- อัปโหลดไฟล์ ---------- */
+.drop { display: grid; gap: 4px; place-items: center; text-align: center; padding: 28px 16px; border: 2px dashed var(--line); border-radius: var(--radius); background: var(--bg); cursor: pointer; }
+.drop:hover, .drop.on { border-color: var(--brand-2); background: #eef2ee; }
+.seg-admin { display: flex; gap: 6px; flex-wrap: wrap; }
+.danger-text { color: var(--danger); }
+
 /* ---------- ตัวเลขสรุป ---------- */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }

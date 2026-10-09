@@ -215,9 +215,11 @@ function Editor({
               className="input"
               value={form.category_id}
               onChange={(e) => set({ category_id: e.target.value })}
-              disabled={!isNew && variants.length > 0}
             >
-              {cats.map((c) => (
+              {/* สินค้าที่มีสีไซซ์แล้ว ย้ายได้เฉพาะหมวดที่ใช้ไซซ์ชนิดเดียวกัน */}
+              {cats
+                .filter((c) => isNew || variants.length === 0 || c.size_type === cats.find((x) => x.id === product?.category_id)?.size_type)
+                .map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>

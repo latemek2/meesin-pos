@@ -6,6 +6,8 @@ const LINKS = [
   { to: '/admin', label: 'ภาพรวม', end: true },
   { group: 'สินค้าและสต็อก' },
   { to: '/admin/products', label: 'สินค้า' },
+  { to: '/admin/categories', label: 'หมวดหมู่' },
+  { to: '/admin/import', label: 'นำเข้า / ส่งออก Excel' },
   { to: '/admin/receive', label: 'รับของเข้า' },
   { to: '/admin/labels', label: 'พิมพ์สติกเกอร์บาร์โค้ด' },
   { to: '/admin/suppliers', label: 'ซัพพลายเออร์' },

@@ -167,5 +167,37 @@ await expectErr(`select public.create_sale($1::jsonb)`, [JSON.stringify({ items:
 const p2 = await sale({ items: [{ variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 15 }, { variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 15 }], pay_method: 'cash', cash_received: 350 });
 ok(Number(p2.total) === 350, 'ครบ 380 ลด 30 แบ่งสองชิ้น = 350');
 
+console.log('\n[11] นำเข้าสินค้าจาก Excel');
+const imp = async (payload) => (await one(`select public.import_products($1::jsonb) r`, [JSON.stringify(payload)])).r;
+await as(POS);
+await expectErr(`select public.import_products('{}'::jsonb)`, null, 'เฉพาะเจ้าของร้าน', 'เครื่อง POS นำเข้าสินค้าไม่ได้');
+await as(OWNER);
+const r1 = await imp({
+  categories: [{ name: 'กระเป๋า', size_type: 'free' }],
+  products: [
+    { name: 'รองเท้าแตะ Wave', category: 'รองเท้าแตะ', price: 390, cost: 180, variants: [
+      { color: 'ดำ', size_label: 'EU 40', size_eu: '40', size_us: '7', size_uk: '6.5', qty: 3, sort_order: 0 },
+      { color: 'ดำ', size_label: 'EU 41', size_eu: '41', qty: 2, sort_order: 1, barcode: '8851111111111' },
+      { color: 'ขาว', size_label: 'EU 40', size_eu: '40', qty: 0, sort_order: 0 } ] },
+    { name: 'กระเป๋าผ้า', category: 'กระเป๋า', price: 250, cost: 90, variants: [{ color: 'ครีม', qty: 5 }] },
+  ],
+});
+ok(r1.categories_created === 1 && r1.products_created === 2 && r1.variants_created === 4 && r1.pieces === 10,
+   `นำเข้า 2 รุ่น 4 รายการ 10 ชิ้น สร้างหมวดใหม่ 1 หมวด (${JSON.stringify(r1)})`);
+const wave = await one(`select v.sku, v.stock_qty, pc.cost from public.variants v join public.products p on p.id=v.product_id join public.product_costs pc on pc.product_id=p.id where p.name='รองเท้าแตะ Wave' and v.color='ขาว'`);
+ok(/^\d+-2-40$/.test(wave.sku) && Number(wave.cost) === 180, `SKU สีที่สองเป็น ${wave.sku} และต้นทุน 180`);
+ok((await one(`select size_label from public.variants where sku like '%-1-F'`)).size_label === 'ฟรีไซซ์', 'ไม่ใส่ไซซ์ = ฟรีไซซ์');
+const r2 = await imp({ products: [{ name: 'รองเท้าแตะ wave', category: 'รองเท้าแตะ', price: 999, variants: [
+  { color: 'ดำ', size_label: 'EU 40', size_eu: '40', qty: 9 }, { color: 'แดง', size_label: 'EU 42', size_eu: '42', qty: 1 } ] }] });
+ok(r2.products_existing === 1 && r2.variants_created === 1 && r2.variants_skipped === 1, 'นำเข้าซ้ำ: รุ่นเดิมเพิ่มสีใหม่ ข้ามสีไซซ์ที่มีแล้ว');
+ok(Number((await one(`select price from public.products where name='รองเท้าแตะ Wave'`)).price) === 390, 'นำเข้าซ้ำไม่แก้ราคาเดิม');
+const before = (await one(`select count(*)::int c from public.variants`)).c;
+await expectErr(`select public.import_products($1::jsonb)`, [JSON.stringify({ products: [
+  { name: 'ผ้าใบใหม่', category: 'รองเท้าผ้าใบ', price: 990, variants: [{ color: 'ดำ', size_label: 'EU 39', qty: 1 }] },
+  { name: 'ผ้าใบใหม่ 2', category: 'รองเท้าผ้าใบ', price: 990, variants: [{ color: 'ดำ', size_label: 'EU 39', barcode: '8851111111111' }] } ] })],
+  'ซ้ำกับสินค้าที่มีอยู่แล้ว', 'บาร์โค้ดซ้ำ ถูกปฏิเสธทั้งไฟล์');
+ok((await one(`select count(*)::int c from public.variants`)).c === before, 'ไฟล์ที่ผิด ไม่บันทึกอะไรเลย');
+await expectErr(`select public.import_products($1::jsonb)`, [JSON.stringify({ products: [{ name: 'x', category: 'ไม่มีหมวดนี้', price: 1, variants: [] }] })], 'ไม่พบหมวด', 'หมวดที่ไม่มีอยู่ถูกปฏิเสธ');
+
 console.log(`\nผ่าน ${pass} / ${pass + fail}`);
 process.exit(fail ? 1 : 0);

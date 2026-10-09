@@ -76,7 +76,8 @@ export default function Dashboard() {
               เพิ่มซัพพลายเออร์ที่หน้า <Link to="/admin/suppliers">ซัพพลายเออร์</Link>
             </li>
             <li>
-              เพิ่มสินค้าทีละรุ่นที่หน้า <Link to="/admin/products/new">เพิ่มสินค้า</Link> พร้อมใส่จำนวนที่นับได้เป็นสต็อกตั้งต้น
+              เพิ่มสินค้าทีละรุ่นที่หน้า <Link to="/admin/products/new">เพิ่มสินค้า</Link> หรือหลายรุ่นพร้อมกันที่หน้า{' '}
+              <Link to="/admin/import">นำเข้าจาก Excel</Link> พร้อมจำนวนที่นับได้เป็นสต็อกตั้งต้น
             </li>
             <li>
               พิมพ์สติกเกอร์ให้สินค้าที่ไม่มีบาร์โค้ดที่หน้า <Link to="/admin/labels">พิมพ์สติกเกอร์</Link>
