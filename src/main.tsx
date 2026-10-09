@@ -16,7 +16,7 @@ import SuppliersPage from './admin/SuppliersPage';
 import ReceivePage from './admin/ReceivePage';
 import LabelsPage from './admin/LabelsPage';
 import SettingsPage from './admin/SettingsPage';
-import PosHome from './pos/PosHome';
+import PosApp from './pos/PosApp';
 import type { Role } from './lib/types';
 
 function Home() {
@@ -59,7 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               path="/pos/*"
               element={
                 <RequireRole allow={['pos', 'owner']}>
-                  <PosHome />
+                  <PosApp />
                 </RequireRole>
               }
             />

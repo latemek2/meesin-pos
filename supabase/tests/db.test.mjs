@@ -1,11 +1,11 @@
 // ทดสอบฐานข้อมูลบน Postgres จำลอง (ไม่แตะฐานข้อมูลจริง)
-// วิธีรัน: npm i -D @electric-sql/pglite@0.4.6 แล้ว node supabase/tests/db.test.mjs supabase/001_setup.sql
+// วิธีรัน: npm run test:db
 
 import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import fs from 'node:fs';
 
-const sqlPath = process.argv[2];
+const sqlPaths = process.argv.slice(2);
 const db = new PGlite({ extensions: { pgcrypto } });
 
 const OWNER = '11111111-1111-1111-1111-111111111111';
@@ -31,7 +31,7 @@ await db.exec(`
   create schema extensions; grant usage on schema extensions to authenticated, anon;
   grant usage on schema public to authenticated, anon;
 `);
-await db.exec(fs.readFileSync(sqlPath, 'utf8'));
+for (const p of sqlPaths) await db.exec(fs.readFileSync(p, 'utf8'));
 console.log('SQL ติดตั้งสำเร็จ');
 await db.exec(`
   insert into auth.users values ('${OWNER}','owner@x'),('${POS}','pos@x');
@@ -142,6 +142,30 @@ await as(POS);
 ok((await q(`select * from public.sale_item_costs`)).length === 0, 'POS มองไม่เห็นต้นทุนในบิล');
 await as(OWNER);
 ok((await q(`select * from public.sale_item_costs`)).length > 0, 'เจ้าของร้านเห็นต้นทุนในบิล');
+
+
+console.log('\n[10] ค้นบิล และโปรโมชัน');
+await as(POS);
+const bill = (await one(`select public.get_bill($1) r`, [s1.bill_no])).r;
+ok(bill && bill.items.length === 2, `ค้นบิล ${s1.bill_no} เจอ 2 รายการ`);
+ok(bill.items.every((i) => i.returned_qty === 1), 'บิลบอกว่าแต่ละชิ้นถูกเปลี่ยนคืนไปแล้ว 1 ชิ้น');
+ok((await one(`select public.get_bill('9999-9999') r`)).r === null, 'เลขบิลที่ไม่มีได้ค่าว่าง');
+await as(OWNER);
+const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+const promo = await one(`insert into public.promotions(name,type,value,scope) values ('ถุงเท้าลด 10%','percent',10,'category') returning id`);
+await q(`insert into public.promotion_targets(promotion_id, category_id) values ($1, 5)`, [promo.id]);
+const old = await one(`insert into public.promotions(name,type,value,scope,ends_on) values ('โปรหมดแล้ว','percent',50,'all','2020-01-01') returning id`);
+const billMin = await one(`insert into public.promotions(name,type,value,min_amount,scope) values ('ครบ 300 ลด 30','bill_min',30,300,'all') returning id`);
+await as(POS);
+await q(`select public.open_shift(0)`);
+const p1 = await sale({ items: [{ variant_id: vSock.id, qty: 1, promo_id: promo.id, promo_discount: 19 }], pay_method: 'cash', cash_received: 171 });
+ok(Number(p1.total) === 171, 'ถุงเท้า 190 โปรลด 10% = 171');
+await expectErr(`select public.create_sale($1::jsonb)`, [JSON.stringify({ items: [{ variant_id: vSock.id, qty: 1, promo_id: promo.id, promo_discount: 50 }], pay_method: 'cash', cash_received: 200 })], 'เกินกว่าที่ตั้งไว้', 'ส่งส่วนลดโปรเกินจริงถูกปฏิเสธ');
+await expectErr(`select public.create_sale($1::jsonb)`, [JSON.stringify({ items: [{ variant_id: v40.id, qty: 1, promo_id: promo.id, promo_discount: 10 }], pay_method: 'cash', cash_received: 2000 })], 'ใช้กับ', 'ใช้โปรถุงเท้ากับรองเท้าไม่ได้');
+await expectErr(`select public.create_sale($1::jsonb)`, [JSON.stringify({ items: [{ variant_id: vSock.id, qty: 1, promo_id: old.id, promo_discount: 10 }], pay_method: 'cash', cash_received: 200 })], 'หมดอายุ', 'โปรที่หมดอายุใช้ไม่ได้');
+await expectErr(`select public.create_sale($1::jsonb)`, [JSON.stringify({ items: [{ variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 20 }, { variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 20 }], pay_method: 'cash', cash_received: 400 })], 'เกินกว่าที่ตั้งไว้', 'โปรซื้อครบยอดลดรวมเกินที่ตั้งไว้ไม่ได้');
+const p2 = await sale({ items: [{ variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 15 }, { variant_id: vSock.id, qty: 1, promo_id: billMin.id, promo_discount: 15 }], pay_method: 'cash', cash_received: 350 });
+ok(Number(p2.total) === 350, 'ครบ 380 ลด 30 แบ่งสองชิ้น = 350');
 
 console.log(`\nผ่าน ${pass} / ${pass + fail}`);
 process.exit(fail ? 1 : 0);

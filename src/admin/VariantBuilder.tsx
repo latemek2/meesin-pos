@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { sizeCode, sizeTemplate, type SizeRow } from '../lib/sizes';
 import type { SizeType, Variant } from '../lib/types';
 
@@ -36,6 +36,15 @@ export default function VariantBuilder({
   );
   const [customSize, setCustomSize] = useState('');
   const [qty, setQty] = useState<Record<string, string>>({});
+
+  // เปลี่ยนหมวดแล้วชนิดไซซ์เปลี่ยน ให้ตารางไซซ์เปลี่ยนตาม (สีที่ใส่ไว้ยังอยู่)
+  const firstType = useRef(sizeType);
+  useEffect(() => {
+    if (firstType.current === sizeType) return;
+    firstType.current = sizeType;
+    setSizes(sizeTemplate(sizeType).map((s) => ({ ...s, on: sizeType === 'apparel' || sizeType === 'free' })));
+    setQty({});
+  }, [sizeType]);
 
   const usedKeys = useMemo(() => new Set(existing.map((v) => `${v.color}|${v.size_label}`)), [existing]);
   const showEU = sizeType === 'shoe' || sizeType === 'kid_shoe';
@@ -136,7 +145,17 @@ export default function VariantBuilder({
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
-        <h3>2. ไซซ์ที่มี</h3>
+        <div className="row between">
+          <h3>2. ไซซ์ที่มี</h3>
+          <div className="row" style={{ gap: 6 }}>
+            <button type="button" className="btn sm" onClick={() => setSizes((ss) => ss.map((s) => ({ ...s, on: true })))}>
+              เลือกทุกไซซ์
+            </button>
+            <button type="button" className="btn sm ghost" onClick={() => setSizes((ss) => ss.map((s) => ({ ...s, on: false })))}>
+              ไม่เลือกเลย
+            </button>
+          </div>
+        </div>
         {showEU && (
           <p className="muted small" style={{ margin: 0 }}>
             ค่า US / UK {showCM ? '/ ซม. ' : ''}ที่ใส่ไว้เป็นค่าโดยประมาณ ตรวจกับป้ายของยี่ห้อนี้แล้วแก้ได้เลย

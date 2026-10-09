@@ -7,18 +7,20 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test:db": "node supabase/tests/db.test.mjs supabase/001_setup.sql"
+    "test:db": "node supabase/tests/db.test.mjs supabase/001_setup.sql supabase/002_pos.sql supabase/002_pos.sql"
   },
   "dependencies": {
     "@fontsource/anuphan": "5.2.5",
     "@supabase/supabase-js": "2.49.4",
     "jsbarcode": "3.11.6",
+    "qrcode": "^1.5.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.28.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.4.6",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
