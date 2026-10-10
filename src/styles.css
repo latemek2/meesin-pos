@@ -203,3 +203,32 @@ table.table { width: 100%; border-collapse: collapse; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* แถบแจ้งเวอร์ชันใหม่ */
+.update-banner {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px 10px 16px;
+  border-radius: 12px;
+  background: #1f3b34;
+  color: #fff;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.2);
+  font-size: 15px;
+}
+.update-banner .btn:not(.primary) {
+  background: transparent;
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.4);
+}
+.update-banner .btn.primary {
+  background: #f4f3ef;
+  color: #1f3b34;
+  border-color: #f4f3ef;
+}

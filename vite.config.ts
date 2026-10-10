@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // แจ้งให้กดอัปเดตเอง ไม่รีโหลดกลางบิล (ดู UpdateBanner)
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'มีศิลป์ POS',

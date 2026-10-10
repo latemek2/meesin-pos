@@ -19,6 +19,7 @@ import SettingsPage from './admin/SettingsPage';
 import CategoriesPage from './admin/CategoriesPage';
 import ImportPage from './admin/ImportPage';
 import PosApp from './pos/PosApp';
+import UpdateBanner from './components/UpdateBanner';
 import type { Role } from './lib/types';
 
 function Home() {
@@ -87,6 +88,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        <UpdateBanner />
       </ToastProvider>
     </AuthProvider>
   </React.StrictMode>,
