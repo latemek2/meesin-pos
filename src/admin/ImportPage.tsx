@@ -24,7 +24,10 @@ interface ImportResult {
   pieces: number;
 }
 
-const MAX_ROWS = 3000;
+/** ไม่เกินนี้ต่อไฟล์ ทดลองแล้ว 6,000 แถวใช้ไม่ถึง 2 วินาที เผื่อเครื่อง Supabase ฟรีช้ากว่า */
+const MAX_ROWS = 6000;
+/** แสดงตารางตรวจไม่เกินนี้ เพื่อไม่ให้หน้าเว็บค้างตอนไฟล์ใหญ่ */
+const MAX_SHOWN = 1000;
 
 export default function ImportPage() {
   const toast = useToast();
@@ -250,7 +253,7 @@ export default function ImportPage() {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((l) => (
+                {shown.slice(0, MAX_SHOWN).map((l) => (
                   <tr key={l.row}>
                     <td className="r num muted">{l.row}</td>
                     <td>
@@ -273,6 +276,13 @@ export default function ImportPage() {
                     </td>
                   </tr>
                 ))}
+                {shown.length > MAX_SHOWN && (
+                  <tr>
+                    <td colSpan={9} className="empty">
+                      แสดง {MAX_SHOWN.toLocaleString()} แถวแรก จาก {shown.length.toLocaleString()} แถว แถวที่เหลือนำเข้าตามปกติ
+                    </td>
+                  </tr>
+                )}
                 {shown.length === 0 && (
                   <tr>
                     <td colSpan={9} className="empty">
